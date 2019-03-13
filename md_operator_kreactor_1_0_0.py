@@ -31,7 +31,7 @@ bl_info = {
     "name": "K_reactor",
     "description": "Create quad/trig/line",
     "author": "Mihai Dobrin",
-    "version": (0, 5, 6),
+    "version": (1, 0, 0),
     "blender": (2, 79, 0),
     "location": "View3D ",
     "warning": "", # used for warning icon and text in addons panel
