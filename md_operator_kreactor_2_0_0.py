@@ -62,9 +62,9 @@ verbose = False
 SNAP_RATIO       = 0.15
 PIXEL_THRESHOLD  = 4
 MAX_SEARCH       = 10
-REFRESH_INTERVAL = 100
+REFRESH_INTERVAL = 33
 SNAP_TOLERANCE   = 0.01
-SOLUTION_DELAY   = 25
+SOLUTION_DELAY   = 250
 ################################################################################
 
 MODE_FACE = 0
