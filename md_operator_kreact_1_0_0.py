@@ -28,7 +28,7 @@ TO DO LIST:
 '''
 
 bl_info = {
-    "name": "K_reactor",
+    "name": "K_react",
     "description": "Create quad/trig/line",
     "author": "Mihai Dobrin",
     "version": (1, 0, 0),
@@ -232,9 +232,9 @@ def get_ray_hit(context, x, y):
         return None, None, None, -1
 
 '''
-class FaceKreactorHelp(bpy.types.Panel):
-    bl_label = "K_reactor help"
-    bl_idname = "md.k_reactor_face_help"
+class FaceKreactHelp(bpy.types.Panel):
+    bl_label = "K_react help"
+    bl_idname = "md.k_react_face_help"
     bl_space_type = "VIEW_3D"
     bl_region_type = 'WINDOW'
     #bl_context = "object"
@@ -261,10 +261,10 @@ class FaceKreactorHelp(bpy.types.Panel):
         itm.label(text = "Right Click / Esc - Cancel")
 '''
 
-class MdKreactor(bpy.types.Operator):
-    bl_idname = "md.k_reactor"
-    bl_label = "K_reactor alpha"
-    bl_description = "K_reactor alpha"
+class MdKreact(bpy.types.Operator):
+    bl_idname = "md.k_react"
+    bl_label = "K_react alpha"
+    bl_description = "K_react alpha"
     bl_options = {'REGISTER', 'UNDO'}
 
     default_trig = bpy.props.BoolProperty(name="default_trig",
@@ -353,14 +353,14 @@ class MdKreactor(bpy.types.Operator):
                     if(self.mouse_x == -1 and self.mouse_y == -1):
                         if(event.shift and event.ctrl):
                             try:
-                                return self.K_reactor_line(context, event.mouse_region_x, event.mouse_region_y)
+                                return self.K_react_line(context, event.mouse_region_x, event.mouse_region_y)
                             except Exception as e:
                                 PrintException()
                                 self.cancel(context)
                                 return {'FINISHED'}
                         else:
                             try:
-                                return self.K_reactor(context, event.mouse_region_x, event.mouse_region_y)
+                                return self.K_react(context, event.mouse_region_x, event.mouse_region_y)
                             except Exception as e:
                                 PrintException()
                                 self.cancel(context)
@@ -818,7 +818,7 @@ class MdKreactor(bpy.types.Operator):
         return potential_solution
     ####################################################################
 
-    def K_reactor_line(self, context, x, y):
+    def K_react_line(self, context, x, y):
         self.hit_location, self.hit_normal, self.snap_obj, snap_obj_face_index = get_ray_hit(context, x, y)
 
         if(self.hit_location != None):
@@ -896,7 +896,7 @@ class MdKreactor(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-    def K_reactor(self, context, x, y):
+    def K_react(self, context, x, y):
 
         def deepcopy(source):
             return [[e for e in source[0]], [v for v in source[1]], source[2], [s for s in source[3]], source[4], source[5]]
@@ -938,7 +938,7 @@ class MdKreactor(bpy.types.Operator):
 
             if((self.mode == MODE_TRIG and len(self.bm.edges) < 2) or (self.mode == MODE_FACE and len(self.bm.edges) < 3)):
                 #print("> line ")
-                self.K_reactor_line(context, x, y)
+                self.K_react_line(context, x, y)
             else:
                 #print("> face ", len(self.bm.edges))
 
@@ -1117,7 +1117,7 @@ class MdKreactor(bpy.types.Operator):
 
 # Addon Prefernedces ###########################################################
 '''
-class MdKreactorToolPreferences(bpy.types.AddonPreferences):
+class MdKreactToolPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
     def draw(self, context):
@@ -1130,14 +1130,14 @@ class MdKreactorToolPreferences(bpy.types.AddonPreferences):
         wm = bpy.context.window_manager
         kc = wm.keyconfigs.user
         km = kc.keymaps['3D View']
-        kmi = get_hotkey_entry_item(km, 'md.k_reactor_face')
+        kmi = get_hotkey_entry_item(km, 'md.k_react_face')
         if kmi:
             col.context_pointer_set("keymap", km)
             rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
-            col.operator(MdKreactorClearHotkeys.bl_idname, text="Clear hotkeys", icon='ZOOMOUT')
+            col.operator(MdKreactClearHotkeys.bl_idname, text="Clear hotkeys", icon='ZOOMOUT')
         else:
             col.label("No hotkey entry found")
-            col.operator(MdKreactorAddHotkey.bl_idname, text="Add hotkey entry", icon='ZOOMIN')
+            col.operator(MdKreactAddHotkey.bl_idname, text="Add hotkey entry", icon='ZOOMIN')
 
         row = layout.row()
         col = row.column()
@@ -1154,13 +1154,13 @@ def register_keymap():
     global addon_keymaps
     kc = bpy.context.window_manager.keyconfigs.addon
     km = kc.keymaps.new(name='3D View', space_type='VIEW_3D')
-    kmi = km.keymap_items.new('md.k_reactor_face', 'RIGHTMOUSE', 'PRESS', ctrl=True)
+    kmi = km.keymap_items.new('md.k_react_face', 'RIGHTMOUSE', 'PRESS', ctrl=True)
     kmi.active = True
     addon_keymaps.append((km, kmi))
 
 
-class MdKreactorAddHotkey(bpy.types.Operator):
-    bl_idname = "md.k_reactor_add_hotkey"
+class MdKreactAddHotkey(bpy.types.Operator):
+    bl_idname = "md.k_react_add_hotkey"
     bl_label = "Addon Preferences Example"
     bl_options = {'REGISTER', 'INTERNAL'}
 
@@ -1169,8 +1169,8 @@ class MdKreactorAddHotkey(bpy.types.Operator):
         self.report({'INFO'}, "Hotkey added in User Preferences -> Input -> 3D view")
         return {'FINISHED'}
 
-class MdKreactorClearHotkeys(bpy.types.Operator):
-    bl_idname = "md.k_reactor_clear_hotkey"
+class MdKreactClearHotkeys(bpy.types.Operator):
+    bl_idname = "md.k_react_clear_hotkey"
     bl_label = "Addon Preferences Example"
     bl_options = {'REGISTER', 'INTERNAL'}
 
@@ -1193,25 +1193,25 @@ def unregister_keymap():
 ################################################################################
 
 def register():
-    bpy.utils.register_class(MdKreactor)
+    bpy.utils.register_class(MdKreact)
     '''
-    bpy.utils.register_class(MdKreactorToolPreferences)
-    bpy.utils.register_class(MdKreactorAddHotkey)
-    bpy.utils.register_class(MdKreactorClearHotkeys)
+    bpy.utils.register_class(MdKreactToolPreferences)
+    bpy.utils.register_class(MdKreactAddHotkey)
+    bpy.utils.register_class(MdKreactClearHotkeys)
     '''
 
     global addon_keymaps
     wm = bpy.context.window_manager
     km = wm.keyconfigs.addon.keymaps.new('Mesh', space_type='EMPTY', region_type='WINDOW', modal=False)
-    kmi = km.keymap_items.new('md.k_reactor', 'RIGHTMOUSE', 'PRESS', ctrl=True)
+    kmi = km.keymap_items.new('md.k_react', 'RIGHTMOUSE', 'PRESS', ctrl=True)
     addon_keymaps.append(km)
 
 def unregister():
-    bpy.utils.unregister_class(MdKreactor)
+    bpy.utils.unregister_class(MdKreact)
     '''
-    bpy.utils.unregister_class(MdKreactorToolPreferences)
-    bpy.utils.unregister_class(MdKreactorAddHotkey)
-    bpy.utils.unregister_class(MdKreactorClearHotkeys)
+    bpy.utils.unregister_class(MdKreactToolPreferences)
+    bpy.utils.unregister_class(MdKreactAddHotkey)
+    bpy.utils.unregister_class(MdKreactClearHotkeys)
     '''
 
     global addon_keymaps
