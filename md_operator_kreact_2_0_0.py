@@ -106,7 +106,8 @@ def get_closest_ray_hit_test(vertex, origin_obj, snap_obj, wire_normal = None):
     #print("snap_obj ", snap_obj)
     #print("hit n ", wire_normal)
 
-    current_obj_inv_matrix = origin_obj.matrix_world
+    current_obj_matrix = origin_obj.matrix_world
+    current_obj_loc    = Vector((current_obj_matrix[0][3], current_obj_matrix[1][3], current_obj_matrix[2][3]))
 
     ray_origin = vertex.co
 
@@ -116,6 +117,7 @@ def get_closest_ray_hit_test(vertex, origin_obj, snap_obj, wire_normal = None):
         ray_direction = vertex.normal
 
     matrix = snap_obj.matrix_world
+    snap_obj_loc = Vector((matrix[0][3], matrix[1][3], matrix[2][3]))
     matrix_inv = matrix.inverted()
     ray_origin_obj = matrix_inv @ ray_origin
 
@@ -134,8 +136,15 @@ def get_closest_ray_hit_test(vertex, origin_obj, snap_obj, wire_normal = None):
     front_hit, front_normal, front_face_index, front_matrix, front_matrix_inv = obj_ray_cast(ray_direction)
     if front_hit is not None:
         #front_hit_world = front_matrix * front_hit
-        front_hit_normal = front_normal @ front_matrix_inv @ current_obj_inv_matrix
-        front_hit_location = front_hit @ front_matrix_inv @ current_obj_inv_matrix
+        front_hit_normal = front_normal @ front_matrix_inv @ current_obj_matrix
+        #front_hit_location = front_hit @ front_matrix_inv @ current_obj_matrix
+        
+        
+        front_hit_location = front_hit @ front_matrix_inv
+        front_hit_location = front_hit_location + snap_obj_loc - current_obj_loc
+        front_hit_location = front_hit_location @ current_obj_matrix
+        
+
         front_hit_distance = dist(front_hit_location, ray_origin)
         #front_hit_face_index = front_face_index
 
@@ -144,8 +153,15 @@ def get_closest_ray_hit_test(vertex, origin_obj, snap_obj, wire_normal = None):
     back_hit, back_normal, back_face_index, back_matrix, back_matrix_inv = obj_ray_cast(-ray_direction)
     if back_hit is not None:
         #back_hit_world = back_matrix * back_hit
-        back_hit_normal = back_normal @ back_matrix_inv @ current_obj_inv_matrix
-        back_hit_location = back_hit @ back_matrix_inv @ current_obj_inv_matrix
+        back_hit_normal = back_normal @ back_matrix_inv @ current_obj_matrix
+        #back_hit_location = back_hit @ back_matrix_inv @ current_obj_matrix
+
+        
+        back_hit_location = back_hit @ back_matrix_inv
+        back_hit_location = back_hit_location + snap_obj_loc - current_obj_loc
+        back_hit_location = back_hit_location @ current_obj_matrix
+        
+        
         back_hit_distance = dist(back_hit_location, ray_origin)
         #back_hit_face_index = back_face_index
 
@@ -165,7 +181,8 @@ def get_closest_ray_hit_test(vertex, origin_obj, snap_obj, wire_normal = None):
 
 def get_ray_hit(context, x, y):
     current_obj = context.object
-    current_obj_inv_matrix = current_obj.matrix_world
+    current_obj_matrix = current_obj.matrix_world
+    current_obj_loc = Vector((current_obj_matrix[0][3], current_obj_matrix[1][3], current_obj_matrix[2][3]))
     scene = context.scene
     region = context.region
     rv3d = context.region_data
@@ -219,12 +236,18 @@ def get_ray_hit(context, x, y):
                 if best_obj is None or length_squared < best_length_squared:
                     best_length_squared = length_squared
                     best_obj = obj
-                    best_normal = normal @ matrix_inv @ current_obj_inv_matrix
-                    best_location = hit @ matrix_inv @ current_obj_inv_matrix
+                    best_normal = normal @ matrix_inv @ current_obj_matrix
+
+                    best_obj_matrix = best_obj.matrix_world
+                    best_obj_loc    = Vector((best_obj_matrix[0][3], best_obj_matrix[1][3], best_obj_matrix[2][3]))
+                    best_location = hit
                     best_face_index = face_index
-                    best_matrix = matrix
 
     if best_obj is not None:
+        best_location = best_location @ matrix_inv
+        best_location = best_location + best_obj_loc - current_obj_loc
+        best_location = best_location @ current_obj_matrix
+
         return  best_location, best_normal, best_obj, best_face_index
     else:
         return None, None, None, -1
