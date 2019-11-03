@@ -28,7 +28,7 @@ TO DO LIST:
 '''
 
 bl_info = {
-    "name": "K_reactor",
+    "name": "K_react",
     "description": "Create quad/trig/line",
     "author": "Mihai Dobrin",
     "version": (0, 6, 0),
@@ -230,10 +230,10 @@ def get_ray_hit(context, x, y):
         return None, None, None, -1
 
 
-class MdKreactor(bpy.types.Operator):
-    bl_idname = "md.k_reactor"
-    bl_label = "K_reactor alpha"
-    bl_description = "K_reactor alpha"
+class MdKreact(bpy.types.Operator):
+    bl_idname = "md.k_react"
+    bl_label = "K_react alpha"
+    bl_description = "K_react alpha"
     bl_options = {'REGISTER', 'UNDO'}
 
     default_trig : bpy.props.BoolProperty(name="default_trig",
@@ -322,14 +322,14 @@ class MdKreactor(bpy.types.Operator):
                     if(self.mouse_x == -1 and self.mouse_y == -1):
                         if(event.shift and event.ctrl):
                             try:
-                                return self.K_reactor_line(context, event.mouse_region_x, event.mouse_region_y)
+                                return self.K_react_line(context, event.mouse_region_x, event.mouse_region_y)
                             except Exception as e:
                                 PrintException()
                                 self.cancel(context)
                                 return {'FINISHED'}
                         else:
                             #try:
-                            return self.K_reactor(context, event.mouse_region_x, event.mouse_region_y)
+                            return self.K_react(context, event.mouse_region_x, event.mouse_region_y)
                             #except Exception as e:
                             #    PrintException()
                             #    self.cancel(context)
@@ -788,7 +788,7 @@ class MdKreactor(bpy.types.Operator):
         return potential_solution
     ####################################################################
 
-    def K_reactor_line(self, context, x, y):
+    def K_react_line(self, context, x, y):
         self.hit_location, self.hit_normal, self.snap_obj, snap_obj_face_index = get_ray_hit(context, x, y)
 
         if(self.hit_location != None):
@@ -867,7 +867,7 @@ class MdKreactor(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-    def K_reactor(self, context, x, y):
+    def K_react(self, context, x, y):
 
         def deepcopy(source):
             return [[e for e in source[0]], [v for v in source[1]], source[2], [s for s in source[3]], source[4], source[5]]
@@ -909,7 +909,7 @@ class MdKreactor(bpy.types.Operator):
 
             if((self.mode == MODE_TRIG and len(self.bm.edges) < 2) or (self.mode == MODE_FACE and len(self.bm.edges) < 3)):
                 #print("> line ")
-                self.K_reactor_line(context, x, y)
+                self.K_react_line(context, x, y)
             else:
                 #print("> face ", len(self.bm.edges))
 
@@ -1093,17 +1093,17 @@ class MdKreactor(bpy.types.Operator):
 ################################################################################
 
 def register():
-    bpy.utils.register_class(MdKreactor)
+    bpy.utils.register_class(MdKreact)
     '''
     global addon_keymaps
     wm = bpy.context.window_manager
     km = wm.keyconfigs.addon.keymaps.new('Mesh', space_type='EMPTY', region_type='WINDOW', modal=False)
-    kmi = km.keymap_items.new('md.k_reactor', 'RIGHTMOUSE', 'PRESS', ctrl=True)
+    kmi = km.keymap_items.new('md.k_react', 'RIGHTMOUSE', 'PRESS', ctrl=True)
     addon_keymaps.append(km)
     '''
 
 def unregister():
-    bpy.utils.unregister_class(MdKreactor)
+    bpy.utils.unregister_class(MdKreact)
 
     '''
     global addon_keymaps
