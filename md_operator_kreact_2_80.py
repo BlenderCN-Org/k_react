@@ -31,7 +31,7 @@ bl_info = {
     "name": "K_react",
     "description": "Create quad/trig/line",
     "author": "Mihai Dobrin",
-    "version": (0, 6, 0),
+    "version": (1, 0, 0),
     "blender": (2, 80, 0),
     "location": "View3D ",
     "warning": "", # used for warning icon and text in addons panel
@@ -108,15 +108,12 @@ def get_closest_ray_hit_test(vertex, origin_obj, snap_obj, wire_normal = None):
 
     current_obj_matrix = origin_obj.matrix_world
     current_obj_matrix_inv = current_obj_matrix.inverted()
-    current_obj_loc = Vector((current_obj_matrix[0][3], current_obj_matrix[1][3], current_obj_matrix[2][3]))
 
     snap_obj_matrix = snap_obj.matrix_world
     snap_obj_matrix_inv = snap_obj_matrix.inverted()
-    snap_obj_matrix_loc = Vector((snap_obj_matrix[0][3], snap_obj_matrix[1][3], snap_obj_matrix[2][3]))
 
-    ray_origin = vertex.co  @ current_obj_matrix_inv
-    ray_origin = ray_origin + current_obj_loc - snap_obj_matrix_loc
-    ray_origin = ray_origin @ snap_obj_matrix
+    ray_origin = current_obj_matrix @ vertex.co
+    ray_origin = snap_obj_matrix_inv @ ray_origin
 
     if(vertex.is_wire):
         ray_direction = wire_normal
@@ -129,10 +126,8 @@ def get_closest_ray_hit_test(vertex, origin_obj, snap_obj, wire_normal = None):
         success, location, normal, face_index = snap_obj.ray_cast(ray_origin, ray_nrm)
 
         if success:
-            location = location @ snap_obj_matrix_inv
-            location = location + snap_obj_matrix_loc - current_obj_loc
-            location = location @ current_obj_matrix
-
+            location = snap_obj_matrix @ location
+            location = current_obj_matrix_inv @ location
             normal = normal @ snap_obj_matrix_inv @ current_obj_matrix
 
             return location, normal, face_index
@@ -143,17 +138,11 @@ def get_closest_ray_hit_test(vertex, origin_obj, snap_obj, wire_normal = None):
 
     front_hit, front_normal, front_face_index = obj_ray_cast(ray_direction)
     if front_hit is not None:
-        #front_hit_normal = front_normal @ snap_obj_matrix_inv @ current_obj_matrix
-        #front_hit_location = front_hit @ snap_obj_matrix_inv @ current_obj_matrix
-
         front_hit_distance = dist(front_hit, ray_origin)
         test_data.append([front_hit_distance, front_normal])
 
     back_hit, back_normal, back_face_index = obj_ray_cast(-ray_direction)
     if back_hit is not None:
-        #back_hit_normal = back_normal @ snap_obj_matrix_inv @ current_obj_matrix
-        #back_hit_location = back_hit @ snap_obj_matrix_inv @ current_obj_matrix
-
         back_hit_distance = dist(back_hit, ray_origin)
         test_data.append([back_hit_distance, back_normal])
 
@@ -172,7 +161,7 @@ def get_closest_ray_hit_test(vertex, origin_obj, snap_obj, wire_normal = None):
 def get_ray_hit(context, x, y):
     current_obj = context.object
     current_obj_matrix = current_obj.matrix_world
-    current_obj_loc = Vector((current_obj_matrix[0][3], current_obj_matrix[1][3], current_obj_matrix[2][3]))
+    current_obj_matrix_inv = current_obj_matrix.inverted()
     scene = context.scene
     region = context.region
     rv3d = context.region_data
@@ -228,15 +217,12 @@ def get_ray_hit(context, x, y):
                     best_obj = obj
                     best_normal = normal @ matrix_inv @ current_obj_matrix
 
-                    best_obj_matrix = best_obj.matrix_world
-                    best_obj_loc    = Vector((best_obj_matrix[0][3], best_obj_matrix[1][3], best_obj_matrix[2][3]))
                     best_location = hit
                     best_face_index = face_index
 
     if best_obj is not None:
-        best_location = best_location @ matrix_inv
-        best_location = best_location + best_obj_loc - current_obj_loc
-        best_location = best_location @ current_obj_matrix
+        best_location = matrix @ best_location
+        best_location = current_obj_matrix_inv @ best_location
 
         return  best_location, best_normal, best_obj, best_face_index
     else:
