@@ -107,65 +107,55 @@ def get_closest_ray_hit_test(vertex, origin_obj, snap_obj, wire_normal = None):
     #print("hit n ", wire_normal)
 
     current_obj_matrix = origin_obj.matrix_world
-    current_obj_loc    = Vector((current_obj_matrix[0][3], current_obj_matrix[1][3], current_obj_matrix[2][3]))
+    current_obj_matrix_inv = current_obj_matrix.inverted()
+    current_obj_loc = Vector((current_obj_matrix[0][3], current_obj_matrix[1][3], current_obj_matrix[2][3]))
 
-    ray_origin = vertex.co
+    snap_obj_matrix = snap_obj.matrix_world
+    snap_obj_matrix_inv = snap_obj_matrix.inverted()
+    snap_obj_matrix_loc = Vector((snap_obj_matrix[0][3], snap_obj_matrix[1][3], snap_obj_matrix[2][3]))
+
+    ray_origin = vertex.co  @ current_obj_matrix_inv
+    ray_origin = ray_origin + current_obj_loc - snap_obj_matrix_loc
+    ray_origin = ray_origin @ snap_obj_matrix
 
     if(vertex.is_wire):
         ray_direction = wire_normal
     else:
         ray_direction = vertex.normal
 
-    matrix = snap_obj.matrix_world
-    snap_obj_loc = Vector((matrix[0][3], matrix[1][3], matrix[2][3]))
-    matrix_inv = matrix.inverted()
-    ray_origin_obj = matrix_inv @ ray_origin
 
-    def obj_ray_cast(ray_direction):
-        ray_direction_obj = matrix_inv @ ray_direction
-
-        success, location, normal, face_index = snap_obj.ray_cast(ray_origin_obj, ray_direction_obj)
+    def obj_ray_cast(ray_nrm):
+        ray_nrm = ray_nrm @ current_obj_matrix_inv  @ snap_obj_matrix
+        success, location, normal, face_index = snap_obj.ray_cast(ray_origin, ray_nrm)
 
         if success:
-            return location, normal, face_index, matrix, matrix_inv
+            location = location @ snap_obj_matrix_inv
+            location = location + snap_obj_matrix_loc - current_obj_loc
+            location = location @ current_obj_matrix
+
+            normal = normal @ snap_obj_matrix_inv @ current_obj_matrix
+
+            return location, normal, face_index
         else:
-            return None, None, None, None, None
+            return None, None, None
 
     test_data = []
 
-    front_hit, front_normal, front_face_index, front_matrix, front_matrix_inv = obj_ray_cast(ray_direction)
+    front_hit, front_normal, front_face_index = obj_ray_cast(ray_direction)
     if front_hit is not None:
-        #front_hit_world = front_matrix * front_hit
-        front_hit_normal = front_normal @ front_matrix_inv @ current_obj_matrix
-        #front_hit_location = front_hit @ front_matrix_inv @ current_obj_matrix
-        
-        
-        front_hit_location = front_hit @ front_matrix_inv
-        front_hit_location = front_hit_location + snap_obj_loc - current_obj_loc
-        front_hit_location = front_hit_location @ current_obj_matrix
-        
+        #front_hit_normal = front_normal @ snap_obj_matrix_inv @ current_obj_matrix
+        #front_hit_location = front_hit @ snap_obj_matrix_inv @ current_obj_matrix
 
-        front_hit_distance = dist(front_hit_location, ray_origin)
-        #front_hit_face_index = front_face_index
+        front_hit_distance = dist(front_hit, ray_origin)
+        test_data.append([front_hit_distance, front_normal])
 
-        test_data.append([front_hit_distance, front_hit_normal])
-
-    back_hit, back_normal, back_face_index, back_matrix, back_matrix_inv = obj_ray_cast(-ray_direction)
+    back_hit, back_normal, back_face_index = obj_ray_cast(-ray_direction)
     if back_hit is not None:
-        #back_hit_world = back_matrix * back_hit
-        back_hit_normal = back_normal @ back_matrix_inv @ current_obj_matrix
-        #back_hit_location = back_hit @ back_matrix_inv @ current_obj_matrix
+        #back_hit_normal = back_normal @ snap_obj_matrix_inv @ current_obj_matrix
+        #back_hit_location = back_hit @ snap_obj_matrix_inv @ current_obj_matrix
 
-        
-        back_hit_location = back_hit @ back_matrix_inv
-        back_hit_location = back_hit_location + snap_obj_loc - current_obj_loc
-        back_hit_location = back_hit_location @ current_obj_matrix
-        
-        
-        back_hit_distance = dist(back_hit_location, ray_origin)
-        #back_hit_face_index = back_face_index
-
-        test_data.append([back_hit_distance, back_hit_normal])
+        back_hit_distance = dist(back_hit, ray_origin)
+        test_data.append([back_hit_distance, back_normal])
 
 
     if(test_data != []):
@@ -553,51 +543,6 @@ class MdKreact(bpy.types.Operator):
         self.bm.normal_update()
 
         bmesh.update_edit_mesh(self.object.data)
-
-    # Get closest vertex #######################################################
-    def get_closest_vertex_old(self):
-        if hasattr(self.bm.verts, "ensure_lookup_table"):
-            self.bm.verts.ensure_lookup_table()
-
-        kd = kdtree.KDTree(len(self.bm.verts))
-        for i, v in enumerate(self.bm.verts):
-            kd.insert(v.co, i)
-        kd.balance()
-
-        def closest_vertex_ok(v):
-            if(v == None):
-                return False
-
-            if(v == self.active_vertex):
-                return False
-
-            c_hit_distance, c_hit_normal = get_closest_ray_hit_test(v, self.object, self.snap_obj, self.hit_normal)
-            #print("c_hit_distance", c_hit_distance)
-
-            if(not v.is_wire):
-                    conform_angle = v.normal.angle(c_hit_normal, pi)
-                    conform =  - (conform_angle / pi)**2 + 1
-
-                    if(conform < 0.5):
-                        return False
-
-            if(c_hit_distance > SNAP_TOLERANCE):
-                return False
-
-            return True
-
-        search_count = 1
-        proposed_mesh_closest_vertex = None
-
-        while (search_count <= MAX_SEARCH and not closest_vertex_ok( proposed_mesh_closest_vertex )):
-            kd_closest_vertex = kd.find_n(self.hit_location, search_count)[-1]
-            proposed_mesh_closest_vertex = self.bm.verts[kd_closest_vertex[1]]
-
-            search_count += 1
-
-        return (proposed_mesh_closest_vertex, kd_closest_vertex[2])
-    ############################################################################
-
 
     # Get closest vertex #######################################################
     def get_closest_vertex(self):
