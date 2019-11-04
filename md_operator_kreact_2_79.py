@@ -106,50 +106,45 @@ def get_closest_ray_hit_test(vertex, origin_obj, snap_obj, wire_normal = None):
     #print("snap_obj ", snap_obj)
     #print("hit n ", wire_normal)
 
-    current_obj_inv_matrix = origin_obj.matrix_world
+    current_obj_matrix = origin_obj.matrix_world
+    current_obj_matrix_inv = current_obj_matrix.inverted()
 
-    ray_origin = vertex.co
+    snap_obj_matrix = snap_obj.matrix_world
+    snap_obj_matrix_inv = snap_obj_matrix.inverted()
+
+    ray_origin = current_obj_matrix * vertex.co
+    ray_origin = snap_obj_matrix_inv * ray_origin
 
     if(vertex.is_wire):
         ray_direction = wire_normal
     else:
         ray_direction = vertex.normal
 
-    matrix = snap_obj.matrix_world
-    matrix_inv = matrix.inverted()
-    ray_origin_obj = matrix_inv * ray_origin
 
-    def obj_ray_cast(ray_direction):
-        ray_direction_obj = matrix_inv * ray_direction
-
-        success, location, normal, face_index = snap_obj.ray_cast(ray_origin_obj, ray_direction_obj)
+    def obj_ray_cast(ray_nrm):
+        ray_nrm = ray_nrm * current_obj_matrix_inv  * snap_obj_matrix
+        success, location, normal, face_index = snap_obj.ray_cast(ray_origin, ray_nrm)
 
         if success:
-            return location, normal, face_index, matrix, matrix_inv
+            location = snap_obj_matrix * location
+            location = current_obj_matrix_inv * location
+            normal = normal * snap_obj_matrix_inv * current_obj_matrix
+
+            return location, normal, face_index
         else:
-            return None, None, None, None, None
+            return None, None, None
 
     test_data = []
 
-    front_hit, front_normal, front_face_index, front_matrix, front_matrix_inv = obj_ray_cast(ray_direction)
+    front_hit, front_normal, front_face_index = obj_ray_cast(ray_direction)
     if front_hit is not None:
-        #front_hit_world = front_matrix * front_hit
-        front_hit_normal = front_normal * front_matrix_inv * current_obj_inv_matrix
-        front_hit_location = front_hit * front_matrix_inv * current_obj_inv_matrix
-        front_hit_distance = dist(front_hit_location, ray_origin)
-        #front_hit_face_index = front_face_index
+        front_hit_distance = dist(front_hit, ray_origin)
+        test_data.append([front_hit_distance, front_normal])
 
-        test_data.append([front_hit_distance, front_hit_normal])
-
-    back_hit, back_normal, back_face_index, back_matrix, back_matrix_inv = obj_ray_cast(-ray_direction)
+    back_hit, back_normal, back_face_index = obj_ray_cast(-ray_direction)
     if back_hit is not None:
-        #back_hit_world = back_matrix * back_hit
-        back_hit_normal = back_normal * back_matrix_inv * current_obj_inv_matrix
-        back_hit_location = back_hit * back_matrix_inv * current_obj_inv_matrix
-        back_hit_distance = dist(back_hit_location, ray_origin)
-        #back_hit_face_index = back_face_index
-
-        test_data.append([back_hit_distance, back_hit_normal])
+        back_hit_distance = dist(back_hit, ray_origin)
+        test_data.append([back_hit_distance, back_normal])
 
 
     if(test_data != []):
@@ -165,7 +160,8 @@ def get_closest_ray_hit_test(vertex, origin_obj, snap_obj, wire_normal = None):
 
 def get_ray_hit(context, x, y):
     current_obj = context.object
-    current_obj_inv_matrix = current_obj.matrix_world
+    current_obj_matrix = current_obj.matrix_world
+    current_obj_matrix_inv = current_obj_matrix.inverted()
     scene = context.scene
     region = context.region
     rv3d = context.region_data
@@ -175,6 +171,7 @@ def get_ray_hit(context, x, y):
     ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
 
     ray_target = ray_origin + view_vector
+
 
     def visible_objects_and_duplis():
 
@@ -199,6 +196,7 @@ def get_ray_hit(context, x, y):
         ray_target_obj = matrix_inv * ray_target
         ray_direction_obj = ray_target_obj - ray_origin_obj
 
+
         success, location, normal, face_index = obj.ray_cast(ray_origin_obj, ray_direction_obj)
 
         if success:
@@ -213,7 +211,7 @@ def get_ray_hit(context, x, y):
     best_location   = None
 
     for obj in visible_objects_and_duplis():
-        if obj.type == 'MESH':
+        if obj.type == 'MESH' and obj.name != current_obj.name:
             hit, normal, face_index, matrix, matrix_inv = obj_ray_cast(obj)
             if hit is not None:
                 hit_world = matrix * hit
@@ -221,45 +219,18 @@ def get_ray_hit(context, x, y):
                 if best_obj is None or length_squared < best_length_squared:
                     best_length_squared = length_squared
                     best_obj = obj
-                    best_normal = normal * matrix_inv * current_obj_inv_matrix
-                    best_location = hit * matrix_inv * current_obj_inv_matrix
+                    best_normal = normal * matrix_inv * current_obj_matrix
+
+                    best_location = hit
                     best_face_index = face_index
-                    best_matrix = matrix
 
     if best_obj is not None:
+        best_location = matrix * best_location
+        best_location = current_obj_matrix_inv * best_location
+
         return  best_location, best_normal, best_obj, best_face_index
     else:
         return None, None, None, -1
-
-'''
-class FaceKreactHelp(bpy.types.Panel):
-    bl_label = "K_react help"
-    bl_idname = "md.k_react_face_help"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = 'WINDOW'
-    #bl_context = "object"
-
-    def draw(self, context):
-        layout = self.layout
-
-        view = context.space_data
-        # mode_string = context.mode
-        obj = context.active_object
-        toolsettings = context.tool_settings
-
-        itm = layout.row(align=True)
-
-
-        itm.label(text = "Left Click - Create quad/trig/line")
-        itm.label(text = "Hold Shift - Preview trig")
-        itm.label(text = "Hold Shift + Ctrl - Preview line")
-        itm.label(text = "A - Preview next solution")
-        itm.label(text = "S - Preview prev solution")
-        itm.label(text = "X - Hold solution")
-        itm.label(text = "Z - Undo")
-
-        itm.label(text = "Right Click / Esc - Cancel")
-'''
 
 class MdKreact(bpy.types.Operator):
     bl_idname = "md.k_react"
