@@ -207,7 +207,7 @@ def get_ray_hit(context, x, y):
     best_location   = None
 
     for obj in visible_objects_and_duplis():
-        if obj.type == 'MESH' and obj.name != current_obj.name:
+        if obj.type == 'MESH' and obj.name != current_obj.name and len(obj.data.polygons) > 0 :
             hit, normal, face_index, matrix, matrix_inv = obj_ray_cast(obj)
             if hit is not None:
                 hit_world = matrix @ hit
