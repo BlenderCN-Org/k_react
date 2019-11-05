@@ -9,5 +9,5 @@ Download md_operator_kreact_2_79.py for Blender 2.79 or md_operator_kreact_2_80.
 
 Personally I'm using Ctrl + RightClick hotkey. You can set a hotkey in the Hotkey (Edit>Preferences) tab by adding a new hotkey in the 3D View > Mesh > Mesh (Global) section. The Blender command for the operator is md.k_react .
 
-![](img/hotkey.png)
+![](img/Hotkey.png)
 
