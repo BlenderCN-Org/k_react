@@ -11,3 +11,4 @@ Personally I'm using Ctrl + RightClick hotkey. You can set a hotkey in the Hotke
 
 ![](img/Hotkey.png)
 
+![](https://youtu.be/S3k5E-BtcgM)
