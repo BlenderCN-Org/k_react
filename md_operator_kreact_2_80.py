@@ -200,7 +200,7 @@ def get_ray_hit(context, x, y):
         else:
             return None, None, None, None, None
 
-    best_length_squared = -1.0
+    best_length_squared = float("inf")
     best_obj = None
     best_normal = None
     best_face_index = -1
@@ -220,8 +220,8 @@ def get_ray_hit(context, x, y):
                     best_location = hit
                     best_face_index = face_index
 
-    if best_obj is not None:
-        best_location = matrix @ best_location
+    if best_obj is not None: # and matrix != None:
+        best_location = best_obj.matrix_world @ best_location
         best_location = current_obj_matrix_inv @ best_location
 
         return  best_location, best_normal, best_obj, best_face_index
