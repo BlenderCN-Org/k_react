@@ -48,7 +48,7 @@ import bgl
 import blf
 from bpy_extras import view3d_utils
 import bmesh
-from math import pi, atan, acos, degrees, sqrt
+from math import pi, atan, acos, degrees, sqrt, cos
 from mathutils import kdtree, Vector, Matrix
 from functools import reduce
 from time import time
@@ -557,10 +557,6 @@ class MdKreact(bpy.types.Operator):
         n = float(len(neighbors))
         if(n > 1):
             max_hit_distance = -1.
-            #min_hit_distance = float('inf')
-
-            #max_distance = -1.
-            #min_distance = float('inf')
 
             for i, v in enumerate(neighbors):
 
@@ -582,14 +578,9 @@ class MdKreact(bpy.types.Operator):
                         conform = (-(conform_angle / pi)**2 + 1) / 2 + 0.5
                     v[3].append(conform)
 
-                    #if(v[1] > max_distance): max_distance = v[1]
-                    #if(v[1] < min_distance): min_distance = v[1]
-
                     if(v[2] > max_hit_distance): max_hit_distance = v[2]
-                    #if(v[2] < min_hit_distance): min_hit_distance = v[2]
                 else:
                     v[3][0] = 0
-
 
             for v in neighbors:
                 if ( (1. - v[2]/max_hit_distance) > 0.5):
@@ -597,7 +588,14 @@ class MdKreact(bpy.types.Operator):
                 else:
                     v[3].append(.5)
 
-                #v[3].append(v[1] / max_distance)
+            ##### Closest on surface # 0 index, 1 distance, 2 hit distance, 3 score
+            plane_distances = [abs((v[0].co - self.hit_location).dot(self.hit_normal)) for v in neighbors]
+            max_distance_to_plane = max(plane_distances)
+
+            for v, d in zip(neighbors, plane_distances):
+                v[3].append( cos(d * pi / 2 / max_distance_to_plane) / 2 + 0.5 )
+
+            #####
 
             neighbors.sort(key=lambda x: prod(x[3]), reverse=True)
 
