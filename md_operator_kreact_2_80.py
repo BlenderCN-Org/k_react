@@ -59,12 +59,12 @@ import sys
 # EDIT SETTINGS ################################################################
 verbose = False
 
-SNAP_RATIO       = 0.15
-PIXEL_THRESHOLD  = 4
-MAX_SEARCH       = 10
-REFRESH_INTERVAL = 33
-SNAP_TOLERANCE   = 0.01
-SOLUTION_DELAY   = 250
+SNAP_RATIO         = 0.15
+PIXEL_THRESHOLD    = 4
+MAX_SEARCH         = 10
+REFRESH_INTERVAL   = 33
+SNAP_TOLERANCE     = 0.01
+SOLUTION_DELAY     = 250
 ################################################################################
 
 MODE_FACE = 0
@@ -296,17 +296,7 @@ class MdKreact(bpy.types.Operator):
             # allow navigation
             return {'PASS_THROUGH'}
         else:
-
-            if (event.type == 'SPACE' and event.value == 'PRESS'):
-                context.object.data.update(True, True)
-                self.cancel(context)
-                return {'FINISHED'}
-
-            elif event.type == 'MOUSEMOVE':
-                self.cycle = 0
-                return {'RUNNING_MODAL'}
-
-            elif event.type == 'TIMER':
+            if event.type == 'TIMER':
                 if(self.pause == False):
 
                     if(self.delay_active and (current_time() - self.last_time) > SOLUTION_DELAY):
@@ -342,7 +332,11 @@ class MdKreact(bpy.types.Operator):
 
                 return {'RUNNING_MODAL'}
 
-            elif (event.type == 'LEFTMOUSE' and event.value == 'PRESS'):
+            elif event.type == 'MOUSEMOVE':
+                self.cycle = 0
+                return {'RUNNING_MODAL'}
+
+            elif ((event.type == 'SPACE' or event.type == 'LEFTMOUSE') and event.value == 'PRESS'):
                 if(event.shift):
                     self.mode = MODE_TRIG
                 else:
@@ -368,19 +362,6 @@ class MdKreact(bpy.types.Operator):
                 self.cycle += 1
                 return {'RUNNING_MODAL'}
 
-            elif (event.type == 'S' and event.value == 'PRESS'):
-                if(event.shift):
-                    self.mode = MODE_TRIG
-                else:
-                    self.mode = MODE_FACE
-                if(self.cycle > 0):
-                    self.cycle -= 1
-                return {'RUNNING_MODAL'}
-
-            elif (event.type == 'C' and event.value == 'PRESS'):
-                self.cycle = 0
-                return {'RUNNING_MODAL'}
-
             elif (event.type == 'X' and event.value == 'PRESS'):
                 self.hold_solution = not self.hold_solution
                 return {'RUNNING_MODAL'}
@@ -401,9 +382,9 @@ class MdKreact(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
     def invoke(self, context, event):
-        #sys.stdout = open('C:/Users/K_tZg1/Dropbox/Sync/Scripts/k_tz_log.txt', 'w')
 
-        #if(verbose): os.system('cls')
+        #os.system('cls')
+
         if(bpy.context.object.mode != 'EDIT'):
             bpy.ops.object.mode_set(mode='EDIT')
         bpy.context.scene.tool_settings.use_snap = True
@@ -485,7 +466,6 @@ class MdKreact(bpy.types.Operator):
         if(face_type == FACE_NONE): face_type = FACE_FREE
         return face_type
 
-
     def create_face(self, solution, face_type = FACE_NONE):
         if(len(solution[0]) < 3 and self.active_vertex == None and not self.snap_mode):
             self.active_vertex = self.bm.verts.new(self.hit_location)
@@ -542,14 +522,14 @@ class MdKreact(bpy.types.Operator):
         kd.balance()
         kd_closest_vertex = kd.find_n(self.hit_location, MAX_SEARCH)
 
-        #print("kd_closest_vertex ", kd_closest_vertex)
-        #print(">Av ", self.active_vertex)
+        #print("kd_closest_vertex ", [v[1] for v in kd_closest_vertex])
+        #if(self.closest_vertex != None): print("Closest: ", self.closest_vertex.index)
         neighbors = []
         for c in kd_closest_vertex:
             v = self.bm.verts[c[1]]
             if (len(self.bm.verts) == 1 or v.is_wire or v.is_boundary or v in self.active_solution[1]) and (v != self.active_vertex):
                 # 0 index, 1 distance, 2 hit distance, 3 score
-                neighbors.append([v, c[2], 0., [1.]])
+                neighbors.append([v, c[2], 0., []])
 
         #print("neighbors ", neighbors)
 
@@ -567,16 +547,17 @@ class MdKreact(bpy.types.Operator):
                     v[2] = c_hit_distance + SNAP_TOLERANCE
 
                     hit_conform = 1
-                    if(not v[0].is_wire):
-                        conform_angle = v[0].normal.angle(c_hit_normal, pi)
-                        hit_conform = (-(conform_angle / pi)**2 + 1) / 2 + 0.5
+                    conform_angle = v[0].normal.angle(c_hit_normal, pi)
+                    hit_conform = (-(conform_angle / pi)**2 + 1) / 2 + 0.5
                     v[3].append(hit_conform)
 
                     conform = 1
-                    if(not v[0].is_wire):
-                        conform_angle = v[0].normal.angle(self.hit_normal, pi)
-                        conform = (-(conform_angle / pi)**2 + 1) / 2 + 0.5
+                    conform_angle = v[0].normal.angle(self.hit_normal, pi)
+                    conform = (-(conform_angle / pi)**2 + 1) / 2 + 0.5
                     v[3].append(conform)
+
+                    if(v[0].is_wire):
+                        v[3].append(0.8)
 
                     if(v[2] > max_hit_distance): max_hit_distance = v[2]
                 else:
@@ -602,7 +583,7 @@ class MdKreact(bpy.types.Operator):
         if (neighbors != []):
             #for v in neighbors:
                 #try:
-                #    print("--- v %5d "% v[0].index, "| [dist %.3f, conform %.3f, snap dist %.3f]"% (v[3][1], v[3][2], v[3][3]))
+                #print("--- v %5d "% v[0].index, "| [dist %.3f, conform %.3f, conform self %.3f, proj %.3f]"% (v[3][0], v[3][1], v[3][2], v[3][4]), " | ", str(v[3]))
                 #except:
                 #    pass
             return (neighbors[0][0], neighbors[0][1])
@@ -736,6 +717,7 @@ class MdKreact(bpy.types.Operator):
             print("SCORE      : %.6f <<<<" % prod(potential_solution[3]))
             print("")
         '''
+
 
         return potential_solution
     ####################################################################
@@ -872,7 +854,6 @@ class MdKreact(bpy.types.Operator):
 
                 self.closest_vertex, closest_vertex_distance = self.get_closest_vertex()
 
-                #if((not(self.closest_vertex.is_boundary or self.closest_vertex.is_wire)) and (not (self.closest_vertex in self.active_solution[1]))):
                 if(self.closest_vertex == None):
                     if(not self.hold_solution):
                         #print("4->")
@@ -892,9 +873,9 @@ class MdKreact(bpy.types.Operator):
 
                     if((self.hold_solution or self.delay_active) and self.active_solution[4] != FACE_LINK): # Hold Snap in
                         if(not self.closest_vertex in self.active_solution[1]):
+                            #print("5->")
                             solution_copy = deepcopy(self.active_solution)
                             solution_copy[1][0] = self.closest_vertex
-                            #print("5->")
                             self.delete_solution(self.active_solution)
                             self.create_face(solution_copy)
                             self.closest_vertex = solution_copy[1][0]
@@ -923,26 +904,24 @@ class MdKreact(bpy.types.Operator):
 
                 # Potential solutions ##############################################
                 def get_solutions():
+                    #print("Active solution:")
+                    #for i in self.active_solution:
+                    #    print("   > " + str(i))
+
                     solutions = []
                     closest_vertices = []
 
                     forbidden_edges = []
-                    forbidden_verts = []
+                    forbidden_vert = None
                     if(self.active_solution[2] != None):
                         forbidden_edges = [e for e in self.active_solution[2].edges if not(e in self.active_solution[0])]
-                        existing_verts = []
-                        new_verts      = []
-                        for e in self.active_solution[2].edges:
-                            if not(e in self.active_solution[0]):
-                                new_verts.append(e.verts[0])
-                                new_verts.append(e.verts[1])
 
-                        for e in self.active_solution[2].edges:
-                            if (e in self.active_solution[0]):
-                                existing_verts.append(e.verts[0])
-                                existing_verts.append(e.verts[1])
+                        if(not self.snap_mode):
+                            forbidden_vert = self.active_solution[1][0]
 
-                        forbidden_verts =  list(set(new_verts) - set(existing_verts))
+                        #print("forbidden_edges: " + str([i.index for i in forbidden_edges]))
+                        #print("forbidden_vert: " + str(forbidden_vert))
+
 
                     if(self.mode == MODE_FACE):
                         if(self.snap_mode): depth = 3
@@ -955,7 +934,7 @@ class MdKreact(bpy.types.Operator):
                         if(level < depth):
                             for e in vertex.link_edges:
                                 if((e.is_wire or e.is_boundary or e in self.active_solution[0]) and
-                                        not (e in forbidden_edges) and not (e.verts[0] in forbidden_verts or e.verts[1] in forbidden_verts)):
+                                        not (e in forbidden_edges) and not (e.verts[0] == forbidden_vert or e.verts[1] == forbidden_vert)):
                                     for i in range(2):
                                         new_stack = [stack[0].copy(), stack[1].copy()]
                                         if(e.verts[i] in stack[1]):
@@ -998,7 +977,6 @@ class MdKreact(bpy.types.Operator):
 
                     solutions.sort(key=lambda x: prod(x[3]), reverse=True)
 
-
                     return solutions
                 ####################################################################
 
@@ -1016,7 +994,6 @@ class MdKreact(bpy.types.Operator):
                         #print("Change: " ,  [e.index for e in self.active_solution[0] if e != None], [v.index for v in self.active_solution[1] if v!= None])
                         self.delay_active  = True
                         self.current_time  = current_time()
-                        #print("7->")
                         self.delete_solution(self.active_solution)
                         self.create_face(solutions[winner])
                     else:
@@ -1034,7 +1011,6 @@ class MdKreact(bpy.types.Operator):
 
             if(self.active_vertex != None):
                 self.active_vertex.select = True
-
 
         return {'RUNNING_MODAL'}
 
