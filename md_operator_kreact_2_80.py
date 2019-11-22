@@ -178,12 +178,13 @@ def get_ray_hit(context, x, y):
 
         depsgraph = context.evaluated_depsgraph_get()
         for dup in depsgraph.object_instances:
+
             if dup.is_instance:  # Real dupli instance
                 obj = dup.instance_object
-                yield (obj)#, dup.matrix_world.copy())
+                yield (obj)
             else:  # Usual object
                 obj = dup.object
-                yield (obj)#, obj.matrix_world.copy())
+                yield (obj)
 
     def obj_ray_cast(obj):
         matrix = obj.matrix_world
@@ -191,7 +192,6 @@ def get_ray_hit(context, x, y):
         ray_origin_obj = matrix_inv @ ray_origin
         ray_target_obj = matrix_inv @ ray_target
         ray_direction_obj = ray_target_obj - ray_origin_obj
-
 
         success, location, normal, face_index = obj.ray_cast(ray_origin_obj, ray_direction_obj)
 
@@ -207,7 +207,7 @@ def get_ray_hit(context, x, y):
     best_location   = None
 
     for obj in visible_objects_and_duplis():
-        if obj.type == 'MESH' and obj.name != current_obj.name and len(obj.data.polygons) > 0 :
+        if obj.name in [ob.name for ob in context.view_layer.objects if ob.visible_get()] and obj.type == 'MESH' and obj.name != current_obj.name and len(obj.data.polygons) > 0 :
             hit, normal, face_index, matrix, matrix_inv = obj_ray_cast(obj)
             if hit is not None:
                 hit_world = matrix @ hit
@@ -270,13 +270,6 @@ class MdKreact(bpy.types.Operator):
     delay_active = False
 
     timer = None
-
-    '''
-    def draw(self, context):
-        layout = self.layout
-        col = layout.column()
-        col.prop(self, 'default_trig', text='Preview trig as default')
-    '''
 
     def modal(self, context, event):
         #print("TIME: ", current_time())
@@ -495,15 +488,6 @@ class MdKreact(bpy.types.Operator):
             if(face_type != FACE_LINE):
                 self.hold_line_vertex = None
 
-        '''
-        elif(len(solution[1]) == 2):
-            face_type = FACE_NONE
-            if(solution[0] == []):
-                try:
-                    solution[0].append(self.bm.edges.new(solution[1]))
-                except:
-                    print("[ERROR] > Line exists!")
-        '''
         self.active_solution = solution
 
         self.bm.normal_update()
