@@ -541,7 +541,9 @@ class MdKreact(bpy.types.Operator):
             for i, v in enumerate(neighbors):
 
                 c_hit_distance, c_hit_normal = get_closest_ray_hit_test(v[0], self.object, self.snap_obj, self.hit_normal)
+
                 #print("c_hit_distance", c_hit_distance)
+
                 if(c_hit_normal != None):
                     v[3].append( (n - i) / n)
                     v[2] = c_hit_distance + SNAP_TOLERANCE
@@ -561,7 +563,7 @@ class MdKreact(bpy.types.Operator):
 
                     if(v[2] > max_hit_distance): max_hit_distance = v[2]
                 else:
-                    v[3][0] = 0
+                    v[3].append(0.)
 
             for v in neighbors:
                 if ( (1. - v[2]/max_hit_distance) > 0.5):
